@@ -16,8 +16,6 @@ pub fn end_diff<'a>(input: &'a str, end: &str) -> Option<&'a str> {
 }
 
 pub fn trim_first_line<'a>(input: &'a str) -> Option<&'a str> {
-    dbg!(input);
-
     let rest = trim_start(input, input.lines().next()?)?;
     let rest = trim_start(rest, "\n")?;
 
