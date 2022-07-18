@@ -60,6 +60,22 @@ impl<'a> Files<'a> {
 
         Ok(())
     }
+
+    pub fn stdout(&self) -> Option<&'a str> {
+        Some(self.get("stdout")?.content)
+    }
+
+    pub fn stdin(&self) -> Option<&'a str> {
+        Some(self.get("stdin")?.content)
+    }
+    
+    pub fn stderr(&self) -> Option<&'a str> {
+        Some(self.get("stderr")?.content)
+    }
+
+    pub fn command(&self) -> Option<&'a str> {
+        Some(self.get("command")?.content)
+    }
 }
 
 impl<'a> File<'a> {
