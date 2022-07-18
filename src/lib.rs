@@ -1,5 +1,11 @@
 mod strings;
 
+use std::error::Error;
+use std::fs;
+use std::fs::File as StdFile;
+use std::io::Write;
+use std::path::Path;
+
 use strings::trim_first_line;
 use strings::trim_start;
 
@@ -40,6 +46,19 @@ impl<'a> Files<'a> {
 
     pub fn get(&self, name: &str) -> Option<File<'a>> {
         Some(*self.0.iter().find(|file| file.name == name)?)
+    }
+
+    pub fn create(&self, folder: &Path) -> Result<(), Box<dyn Error>>{
+        for parsed_file in &self.0 {
+            let path = folder.join(Path::new(parsed_file.name));
+            let folder_name = path.parent().unwrap();
+
+            fs::create_dir_all(folder_name)?;
+            let mut file = StdFile::create(path)?;
+            file.write_all(parsed_file.content.as_bytes())?;
+        }
+
+        Ok(())
     }
 }
 
