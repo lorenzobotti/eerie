@@ -72,8 +72,7 @@ impl<'a> File<'a> {
     }
 
     fn parse_name(input: &'a str) -> Option<&'a str> {
-        // todo: parse the FIRST subtitle, so the rest can be an explanation / markdown
-        let name = input.split(SUBTITLE).last()?.trim();
+        let name = input.split(SUBTITLE).nth(1)?.split('\n').next()?.trim();
         match name.len() {
             0 => None,
             _ => Some(name)
