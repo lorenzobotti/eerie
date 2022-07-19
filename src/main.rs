@@ -7,5 +7,5 @@ fn main() {
 
     dbg!(&files.0);
 
-    files.create(Path::new("./temp_test")).unwrap();
+    files.run(Path::new("./temp_test")).unwrap();
 }

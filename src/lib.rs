@@ -3,8 +3,11 @@ mod strings;
 use std::error::Error;
 use std::fs;
 use std::fs::File as StdFile;
+use std::io::Read;
 use std::io::Write;
 use std::path::Path;
+use std::process::Command;
+use std::io::BufReader;
 
 use strings::trim_first_line;
 use strings::trim_start;
@@ -50,6 +53,16 @@ impl<'a> Files<'a> {
 
     pub fn create(&self, folder: &Path) -> Result<(), Box<dyn Error>>{
         for parsed_file in &self.0 {
+            if [
+                "stdin",
+                "stdout",
+                "stderr",
+                "command",
+                "success",
+            ].contains(&parsed_file.name) {
+                continue;
+            }
+
             let path = folder.join(Path::new(parsed_file.name));
             let folder_name = path.parent().unwrap();
 
@@ -74,7 +87,62 @@ impl<'a> Files<'a> {
     }
 
     pub fn command(&self) -> Option<&'a str> {
-        Some(self.get("command")?.content)
+        Some(self.get("command")?.content.trim())
+    }
+    
+    pub fn status(&self) -> Option<i32> {
+        self.get("status")?.content.trim().parse().ok()
+    }
+
+    pub fn run(&self, folder: &Path) -> Result<(), Box<dyn Error>> {
+        let mut command_args = self.command().ok_or("can't find command")?.split(" ");
+        self.create(folder)?;
+
+        // TODO: maybe make this run a full shell script?
+        // for now it just runs one command
+        let mut com = Command::new(command_args.next().unwrap());
+        for elem in command_args {
+            com.arg(elem);
+        }
+        
+        // let mut process = com.output()?;
+        com.current_dir(folder);
+        let mut output = com.output()?;
+
+        // if let Some(stdin) = self.stdin() {
+        //     process.stdin.as_mut().unwrap().write(stdin.as_bytes())?;
+        // }
+
+        // let output = process.wait_with_output()?;
+
+        if let Some(stdout) = self.stdout() {
+            let gotten = String::from_utf8(output.stdout)?;
+
+            if gotten != stdout {
+                return Err("stdout doesn't match".into());
+            }
+        }
+        
+        if let Some(stderr) = self.stderr() {
+            let gotten = String::from_utf8(output.stderr)?;
+
+            if &gotten != stderr {
+                return Err("stdout doesn't match".into());
+            }
+        }
+        
+        if let Some(expected_status) = self.status() {
+            match output.status.code() {
+                Some(s) => if expected_status != s { return Err("unexpected status".into()) },
+                None => return Err("process didn't have exit status".into()),
+            }
+        }
+        
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err("failing status code".into())
+        }
     }
 }
 

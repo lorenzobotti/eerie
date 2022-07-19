@@ -16,3 +16,13 @@ Sto pensando che potrei mettere `stdout`, `stdin`, `command` e `stderr` come nom
 ```
 Hello, world!
 ```
+
+## command
+```
+go run main.go
+```
+
+## status
+```
+0
+```
