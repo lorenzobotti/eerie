@@ -199,22 +199,3 @@ impl<'a> File<'a> {
     }
 
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_start() {
-        let inputs = [
-            ("hamburger.go", "hamburger.go"),
-            (r#""johnny boy""#, "johnny boy"),
-            ("stdout", "stdout"),
-        ];
-
-        for (input, expected) in inputs {
-            let got = File::parse_name(input).unwrap();
-            assert_eq!(expected, got);
-        }
-    }
-}
