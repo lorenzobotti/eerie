@@ -199,3 +199,29 @@ impl<'a> File<'a> {
     }
 
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn execute_test_files() {
+        let target_folder = "./temp_test";
+        
+        if Path::new(target_folder).is_dir() {
+            fs::remove_dir_all(target_folder).unwrap();
+        }
+
+        for file in fs::read_dir("./tests").unwrap() {
+            let file = file.unwrap();
+            let contents = fs::read_to_string(file.path()).unwrap();
+
+            let (files, _) = Files::from_str(&contents).unwrap();
+            fs::create_dir(target_folder).unwrap();
+            files.run(Path::new(target_folder)).unwrap();
+
+            fs::remove_dir_all(target_folder).unwrap();
+        }
+    }
+}
