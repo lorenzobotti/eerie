@@ -117,6 +117,7 @@ impl<'a> Files<'a> {
 
         if let Some(stdout) = self.stdout() {
             let gotten = String::from_utf8(output.stdout)?;
+            dbg!(&gotten);
 
             if gotten != stdout {
                 return Err("stdout doesn't match".into());
@@ -175,6 +176,7 @@ impl<'a> File<'a> {
     }
 
     fn parse_name(input: &'a str) -> Option<&'a str> {
+        dbg!(input);
         let name = input.split(SUBTITLE).nth(1)?.split('\n').next()?.trim();
         match name.len() {
             0 => None,
