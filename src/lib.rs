@@ -9,6 +9,9 @@ use std::path::Path;
 use std::process::Command;
 use std::io::BufReader;
 
+use subprocess::Exec;
+use subprocess::ExitStatus;
+
 use strings::trim_first_line;
 use strings::trim_start;
 
@@ -98,26 +101,21 @@ impl<'a> Files<'a> {
         let mut command_args = self.command().ok_or("can't find command")?.split(" ");
         self.create(folder)?;
 
-        // TODO: maybe make this run a full shell script?
-        // for now it just runs one command
-        let mut com = Command::new(command_args.next().unwrap());
-        for elem in command_args {
-            com.arg(elem);
+
+        let mut exec = Exec::cmd(command_args.next().unwrap());
+        for arg in command_args {
+            exec = exec.arg(arg);
         }
-        
-        // let mut process = com.output()?;
-        com.current_dir(folder);
-        let mut output = com.output()?;
 
-        // if let Some(stdin) = self.stdin() {
-        //     process.stdin.as_mut().unwrap().write(stdin.as_bytes())?;
-        // }
+        exec = exec.cwd(folder);
+        if let Some(stdin) = self.stdin() {
+            exec = exec.stdin(stdin);
+        }
 
-        // let output = process.wait_with_output()?;
+        let captured = exec.capture()?;
 
         if let Some(stdout) = self.stdout() {
-            let gotten = String::from_utf8(output.stdout)?;
-            dbg!(&gotten);
+            let gotten = String::from_utf8(captured.stdout)?;
 
             if gotten != stdout {
                 return Err("stdout doesn't match".into());
@@ -125,7 +123,7 @@ impl<'a> Files<'a> {
         }
         
         if let Some(stderr) = self.stderr() {
-            let gotten = String::from_utf8(output.stderr)?;
+            let gotten = String::from_utf8(captured.stderr)?;
 
             if &gotten != stderr {
                 return Err("stdout doesn't match".into());
@@ -133,13 +131,21 @@ impl<'a> Files<'a> {
         }
         
         if let Some(expected_status) = self.status() {
-            match output.status.code() {
-                Some(s) => if expected_status != s { return Err("unexpected status".into()) },
-                None => return Err("process didn't have exit status".into()),
+            let code = match captured.exit_status {
+                ExitStatus::Exited(s) => s as i32,
+                ExitStatus::Other(s) => s,
+                ExitStatus::Signaled(s) => s as i32,
+                ExitStatus::Undetermined => return Err("exit code is undetermined".into()),
+            };
+
+            if code != expected_status {
+                return Err("wrong exit status".into());
+            } else {
+                return Ok(());
             }
         }
         
-        if output.status.success() {
+        if captured.exit_status.success() {
             Ok(())
         } else {
             Err("failing status code".into())
@@ -176,7 +182,6 @@ impl<'a> File<'a> {
     }
 
     fn parse_name(input: &'a str) -> Option<&'a str> {
-        dbg!(input);
         let name = input.split(SUBTITLE).nth(1)?.split('\n').next()?.trim();
         match name.len() {
             0 => None,
