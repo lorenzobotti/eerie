@@ -3,21 +3,17 @@ mod strings;
 use std::error::Error;
 use std::fs;
 use std::fs::File as StdFile;
-use std::io::Read;
+
 use std::io::Write;
 use std::path::Path;
-use std::process::Command;
-use std::io::BufReader;
 
 use subprocess::Exec;
 use subprocess::ExitStatus;
 
 use strings::trim_first_line;
-use strings::trim_start;
 
 const DELIMITER: &str = "```";
 const SUBTITLE: &str = "## ";
-const QUOTE: char = '"';
 
 #[derive(Debug, Clone, Copy)]
 pub struct File<'a> {
@@ -26,13 +22,13 @@ pub struct File<'a> {
     pub language: Option<&'a str>,
 }
 
-pub struct Files<'a> (pub Vec<File<'a>>);
+pub struct Files<'a>(pub Vec<File<'a>>);
 
 impl<'a> Files<'a> {
     pub fn from_str(input: &'a str) -> Result<(Self, &'a str), &'static str> {
         let mut files = Vec::new();
         let mut rest = input;
-    
+
         loop {
             match File::from_str(rest) {
                 Ok((file, left)) => {
@@ -54,15 +50,9 @@ impl<'a> Files<'a> {
         Some(*self.0.iter().find(|file| file.name == name)?)
     }
 
-    pub fn create(&self, folder: &Path) -> Result<(), Box<dyn Error>>{
+    pub fn create(&self, folder: &Path) -> Result<(), Box<dyn Error>> {
         for parsed_file in &self.0 {
-            if [
-                "stdin",
-                "stdout",
-                "stderr",
-                "command",
-                "success",
-            ].contains(&parsed_file.name) {
+            if ["stdin", "stdout", "stderr", "command", "success"].contains(&parsed_file.name) {
                 continue;
             }
 
@@ -84,7 +74,7 @@ impl<'a> Files<'a> {
     pub fn stdin(&self) -> Option<&'a str> {
         Some(self.get("stdin")?.content)
     }
-    
+
     pub fn stderr(&self) -> Option<&'a str> {
         Some(self.get("stderr")?.content)
     }
@@ -92,7 +82,7 @@ impl<'a> Files<'a> {
     pub fn command(&self) -> Option<&'a str> {
         Some(self.get("command")?.content.trim())
     }
-    
+
     pub fn status(&self) -> Option<i32> {
         self.get("status")?.content.trim().parse().ok()
     }
@@ -100,7 +90,6 @@ impl<'a> Files<'a> {
     pub fn run(&self, folder: &Path) -> Result<(), Box<dyn Error>> {
         let mut command_args = self.command().ok_or("can't find command")?.split(" ");
         self.create(folder)?;
-
 
         let mut exec = Exec::cmd(command_args.next().unwrap());
         for arg in command_args {
@@ -121,7 +110,7 @@ impl<'a> Files<'a> {
                 return Err("stdout doesn't match".into());
             }
         }
-        
+
         if let Some(stderr) = self.stderr() {
             let gotten = String::from_utf8(captured.stderr)?;
 
@@ -129,7 +118,7 @@ impl<'a> Files<'a> {
                 return Err("stdout doesn't match".into());
             }
         }
-        
+
         if let Some(expected_status) = self.status() {
             let code = match captured.exit_status {
                 ExitStatus::Exited(s) => s as i32,
@@ -144,7 +133,7 @@ impl<'a> Files<'a> {
                 return Ok(());
             }
         }
-        
+
         if captured.exit_status.success() {
             Ok(())
         } else {
@@ -185,10 +174,10 @@ impl<'a> File<'a> {
         let name = input.split(SUBTITLE).nth(1)?.split('\n').next()?.trim();
         match name.len() {
             0 => None,
-            _ => Some(name)
+            _ => Some(name),
         }
     }
-    
+
     fn parse_language(input: &'a str) -> Option<Option<&'a str>> {
         let line = input.lines().next()?;
         let lang = line.trim();
@@ -197,7 +186,6 @@ impl<'a> File<'a> {
             _ => Some(Some(lang)),
         }
     }
-
 }
 
 #[cfg(test)]
@@ -208,7 +196,7 @@ mod tests {
     #[test]
     fn execute_test_files() {
         let target_folder = "./temp_test";
-        
+
         if Path::new(target_folder).is_dir() {
             fs::remove_dir_all(target_folder).unwrap();
         }

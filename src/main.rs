@@ -1,5 +1,5 @@
-use std::path::Path;
 use eerie::Files;
+use std::path::Path;
 
 fn main() {
     let test = include_str!("../tests/cat.eer.md");

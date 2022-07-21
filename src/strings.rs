@@ -6,6 +6,7 @@ pub fn trim_start<'a>(input: &'a str, start: &str) -> Option<&'a str> {
     }
 }
 
+#[allow(dead_code)]
 pub fn end_diff<'a>(input: &'a str, end: &str) -> Option<&'a str> {
     if input.ends_with(end) {
         let diff = input.bytes().len() - end.bytes().len();
