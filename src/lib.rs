@@ -7,12 +7,14 @@ use std::fs::File as StdFile;
 use std::io::Write;
 use std::path::Path;
 
+use strings::which_comes_first;
 use subprocess::Exec;
 use subprocess::ExitStatus;
 
 use strings::trim_first_line;
 
-const DELIMITER: &str = "```";
+const DELIMITER_NEWLINE: &str = "```";
+const DELIMITER_NO_NEWLINE: &str = "````";
 const SUBTITLE: &str = "## ";
 
 #[derive(Debug, Clone, Copy)]
@@ -146,17 +148,25 @@ impl<'a> File<'a> {
     pub fn from_str(s: &'a str) -> Result<(Self, &'a str), &'static str> {
         let starting_str = s;
 
-        let (intro, rest) = s
-            .split_once(DELIMITER)
-            .ok_or("can't find beginning delimiter")?;
+        let (delimiter, delimiter_start) =
+            which_comes_first(s, DELIMITER_NEWLINE, DELIMITER_NO_NEWLINE)
+                .ok_or("can't find beginning delimiter")?;
 
+        let (intro, rest) = s.split_at(delimiter_start);
+        let rest = &rest[delimiter.bytes().len()..];
+        
         let name = Self::parse_name(intro).ok_or("couldn't parse name")?;
+        
         let (content, rest) = rest
-            .split_once(DELIMITER)
+            .split_once(delimiter)
             .ok_or("can't find beginning delimiter")?;
-
+        
         let language = Self::parse_language(content).ok_or("can't parse content start")?;
-        let content = trim_first_line(content).ok_or("can't trim content start")?;
+        let mut content = trim_first_line(content).ok_or("can't trim content start")?;
+
+        if delimiter == DELIMITER_NO_NEWLINE && content.ends_with('\n') {
+            content = &content[..(content.bytes().len() - 1)];
+        }
 
         let parsed_len = starting_str.bytes().len() - rest.bytes().len();
 
@@ -206,10 +216,32 @@ mod tests {
             let contents = fs::read_to_string(file.path()).unwrap();
 
             let (files, _) = Files::from_str(&contents).unwrap();
-            fs::create_dir(target_folder).unwrap();
-            files.run(Path::new(target_folder)).unwrap();
-
-            fs::remove_dir_all(target_folder).unwrap();
+            
+            if files.get("command").is_some() {
+                fs::create_dir(target_folder).unwrap();
+                files.run(Path::new(target_folder)).unwrap();
+                fs::remove_dir_all(target_folder).unwrap();
+            }
         }
+    }
+
+    #[test]
+    fn newline() {
+        let input_file = include_str!("../tests/newline.eer.md");
+        let (files, _) = Files::from_str(input_file).unwrap();
+
+        dbg!(&files.0);
+
+        assert!(!files
+            .get("no_new_line.txt")
+            .unwrap()
+            .content
+            .ends_with('\n'));
+
+        assert!(dbg!(files
+            .get("a_new_line.txt")
+            .unwrap()
+            .content)
+            .ends_with('\n'));
     }
 }
