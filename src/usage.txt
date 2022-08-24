@@ -1,0 +1,5 @@
+eerie - e2e testing for command line apps
+
+commands:
+    create <docfile> [path]: transforms a docfile into a folder at the path provided
+    run <docfile> [path]: transforms a docfile into a folder at the path provided and then runs the test command

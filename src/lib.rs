@@ -24,6 +24,7 @@ pub struct File<'a> {
     pub language: Option<&'a str>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Files<'a>(pub Vec<File<'a>>);
 
 impl<'a> Files<'a> {
