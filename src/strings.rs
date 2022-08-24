@@ -26,15 +26,12 @@ pub fn trim_first_line<'a>(input: &'a str) -> Option<&'a str> {
 }
 
 pub fn which_comes_first<'a>(input: &str, a: &'a str, b: &'a str) -> Option<(&'a str, usize)> {
-    let len_a = input.find(a);
-    let len_b = input.find(b);
-
-    match (len_a, len_b) {
+    match (input.find(a), input.find(b)) {
         (None, None) => None,
         (None, Some(len)) => Some((b, len)),
         (Some(len), None) => Some((a, len)),
         (Some(len_a), Some(len_b)) => match len_a.cmp(&len_b) {
-            Ordering::Less => Some((b, len_b)),
+            Ordering::Less => Some((a, len_a)),
             Ordering::Equal => {
                 if a.bytes().len() > b.bytes().len() {
                     Some((a, len_a))
@@ -42,7 +39,22 @@ pub fn which_comes_first<'a>(input: &str, a: &'a str, b: &'a str) -> Option<(&'a
                     Some((b, len_b))
                 }
             }
-            Ordering::Greater => Some((a, len_a)),
+            Ordering::Greater => Some((b, len_b)),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{DELIMITER_NEWLINE, DELIMITER_NO_NEWLINE};
+
+    use super::*;
+
+    #[test]
+    fn comes_first() {
+        let test_str = include_str!("../tests/example.eer.md");
+        let (first, _) = which_comes_first(test_str, DELIMITER_NEWLINE, DELIMITER_NO_NEWLINE).unwrap();
+
+        assert_eq!(first, DELIMITER_NEWLINE);
     }
 }
