@@ -230,18 +230,16 @@ mod tests {
         let input_file = include_str!("../tests/newline.eer.md");
         let (files, _) = Files::from_str(input_file).unwrap();
 
-        dbg!(&files.0);
-
         assert!(!files
             .get("no_new_line.txt")
             .unwrap()
             .content
             .ends_with('\n'));
 
-        assert!(dbg!(files
+        assert!(files
             .get("a_new_line.txt")
             .unwrap()
-            .content)
+            .content
             .ends_with('\n'));
     }
 }
